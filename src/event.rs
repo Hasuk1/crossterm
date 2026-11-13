@@ -769,6 +769,10 @@ pub struct KeyEvent {
     /// pattern — keeps working once the enhancement is enabled.
     #[cfg_attr(feature = "serde", serde(default))]
     pub base_layout_code: Option<KeyCode>,
+    /// Modifiers as reported alongside `base_layout_code`, before the shifted
+    /// character is folded into `code` for text input.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub base_layout_modifiers: Option<KeyModifiers>,
 }
 
 impl KeyEvent {
@@ -779,6 +783,7 @@ impl KeyEvent {
             kind: KeyEventKind::Press,
             state: KeyEventState::empty(),
             base_layout_code: None,
+            base_layout_modifiers: None,
         }
     }
 
@@ -793,6 +798,7 @@ impl KeyEvent {
             kind,
             state: KeyEventState::empty(),
             base_layout_code: None,
+            base_layout_modifiers: None,
         }
     }
 
@@ -808,6 +814,7 @@ impl KeyEvent {
             kind,
             state,
             base_layout_code: None,
+            base_layout_modifiers: None,
         }
     }
 
@@ -815,6 +822,13 @@ impl KeyEvent {
     #[must_use = "this returns a new event instead of modifying the original"]
     pub fn with_base_layout_code(mut self, base_layout_code: Option<KeyCode>) -> KeyEvent {
         self.base_layout_code = base_layout_code;
+        self
+    }
+
+    /// Returns the event with the unmodified base-layout modifiers set.
+    #[must_use = "this returns a new event instead of modifying the original"]
+    pub fn with_base_layout_modifiers(mut self, modifiers: Option<KeyModifiers>) -> KeyEvent {
+        self.base_layout_modifiers = modifiers;
         self
     }
 
@@ -844,6 +858,7 @@ impl From<KeyCode> for KeyEvent {
             kind: KeyEventKind::Press,
             state: KeyEventState::empty(),
             base_layout_code: None,
+            base_layout_modifiers: None,
         }
     }
 }
@@ -859,6 +874,7 @@ impl PartialEq for KeyEvent {
             kind: lhs_kind,
             state: lhs_state,
             base_layout_code: _,
+            base_layout_modifiers: _,
         } = self.normalize_case();
         let KeyEvent {
             code: rhs_code,
@@ -866,6 +882,7 @@ impl PartialEq for KeyEvent {
             kind: rhs_kind,
             state: rhs_state,
             base_layout_code: _,
+            base_layout_modifiers: _,
         } = other.normalize_case();
         (lhs_code == rhs_code)
             && (lhs_modifiers == rhs_modifiers)
@@ -886,6 +903,7 @@ impl Hash for KeyEvent {
             kind,
             state,
             base_layout_code: _,
+            base_layout_modifiers: _,
         } = self.normalize_case();
         code.hash(hash_state);
         modifiers.hash(hash_state);

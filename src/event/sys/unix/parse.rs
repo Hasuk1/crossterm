@@ -598,6 +598,7 @@ pub(crate) fn parse_csi_u_encoded_key_code(buffer: &[u8]) -> io::Result<Option<I
     // are read positionally, before either is used.
     let shifted_key = next_alternate_key(&mut codepoints);
     let base_layout_key = next_alternate_key(&mut codepoints);
+    let base_layout_modifiers = base_layout_key.map(|_| modifiers);
 
     // The shifted key is the character the active layout produces with shift held, so
     // it replaces the key code and consumes the modifier.
@@ -618,7 +619,8 @@ pub(crate) fn parse_csi_u_encoded_key_code(buffer: &[u8]) -> io::Result<Option<I
         // The base layout key is the key at the same physical position on a standard
         // PC-101 keyboard, which lets applications match shortcuts by physical key
         // regardless of the layout the user types in.
-        .with_base_layout_code(base_layout_key.map(KeyCode::Char)),
+        .with_base_layout_code(base_layout_key.map(KeyCode::Char))
+        .with_base_layout_modifiers(base_layout_modifiers),
     );
 
     Ok(Some(InternalEvent::Event(input_event)))
@@ -1506,6 +1508,16 @@ mod tests {
         assert_eq!(event.code, KeyCode::Char('\u{434}'));
         assert_eq!(event.modifiers, KeyModifiers::CONTROL);
         assert_eq!(event.base_layout_code, Some(KeyCode::Char('l')));
+        assert_eq!(event.base_layout_modifiers, Some(KeyModifiers::CONTROL));
+
+        let shifted = key_event(b"\x1B[1076:1044:108;6u");
+        assert_eq!(shifted.code, KeyCode::Char('\u{414}'));
+        assert_eq!(shifted.modifiers, KeyModifiers::CONTROL);
+        assert_eq!(shifted.base_layout_code, Some(KeyCode::Char('l')));
+        assert_eq!(
+            shifted.base_layout_modifiers,
+            Some(KeyModifiers::CONTROL | KeyModifiers::SHIFT)
+        );
 
         // The shifted key may be omitted while the base layout key is present.
         let event = key_event(b"\x1B[1076::108;5u");
